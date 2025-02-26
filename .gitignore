@@ -1,0 +1,44 @@
+# Byte-compiled / optimized / compiled Python files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environment
+venv/
+env/
+*.egg-info/
+
+# Logs & Debug Files
+*.log
+debug.log
+
+# Docker-related files
+*.pid
+*.swp
+docker-compose.override.yml
+
+# Ignore environment variables (security)
+.env
+.env.local
+.env.production
+.env.test
+
+# Ignore system files
+.DS_Store
+Thumbs.db
+
+# Ignore Nginx cache and logs
+nginx/*.log
+nginx/cache/
+
+# Ignore generated static files
+backend/__pycache__/
+backend/*.pyc
+backend/.pytest_cache/
+backend/.mypy_cache/
+backend/.coverage
+
+# Ignore IDE & Editor settings
+.vscode/
+.idea/
+*.sublime-workspace

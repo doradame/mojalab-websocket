@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Snake - WebSocket Demo</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.3.2/socket.io.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+        }
+        h2 {
+            color: #333;
+        }
+        canvas {
+            background-color: white;
+            border: 2px solid black;
+            display: block;
+            margin: 0 auto;
+        }
+        .game-controls {
+            margin-top: 10px;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            margin: 5px;
+            cursor: pointer;
+            border: none;
+            border-radius: 5px;
+            transition: background 0.3s;
+        }
+        .start-btn {
+            background: #4CAF50;
+            color: white;
+        }
+        .reset-btn {
+            background: #f44336;
+            color: white;
+        }
+        .score-panel {
+            margin-top: 15px;
+            font-size: 18px;
+        }
+        .legend {
+            display: flex;
+            justify-content: center;
+            margin-top: 10px;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-right: 15px;
+        }
+        .color-box {
+            width: 20px;
+            height: 20px;
+            margin-right: 5px;
+            border: 1px solid #333;
+        }
+        .food { background: yellow; }
+        .ai-snake { background: red; }
+        .player-snake { background: lime; }
+    </style>
+</head>
+<body>
+    <h2>🐍 Play Snake vs "AI"</h2>
+    <p>Use arrow keys to move the snake and compete against the AI in real-time.</p>
+    <p>The ‘AI’ here isn’t exactly an AI —it just follows some basic rules to chase food and avoid walls. No deep learning, just deep hunger!</p>
+
+    <canvas id="gameCanvas" width="400" height="400"></canvas>
+
+    <div class="game-controls">
+        <button class="start-btn" onclick="startGame()">▶️ Start Game</button>
+        <button class="reset-btn" onclick="resetGame()">🔄 Reset Game</button>
+    </div>
+
+    <h2>📊 Snake Length</h2>
+    <div class="score-panel">
+        <div>🟢 You: <span id="playerLength">1</span> blocks</div>
+        <div>🔴 AI: <span id="aiLength">1</span> blocks</div>
+    </div>
+
+    <h2>🎨 Color Legend</h2>
+    <div class="legend">
+        <div class="legend-item">
+            <div class="color-box food"></div> <span>Food</span>
+        </div>
+        <div class="legend-item">
+            <div class="color-box ai-snake"></div> <span>AI Snake</span>
+        </div>
+        <div class="legend-item">
+            <div class="color-box player-snake"></div> <span>Your Snake</span>
+        </div>
+    </div>
+
+    <script>
+        const socket = io("ws://localhost:8080/snake_game", { 
+            path: "/socket.io/",
+            transports: ["websocket"]
+        });
+
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+        const gridSize = 20;
+        let gameState = {};
+
+        // Listen for game updates
+        socket.on("game_update", (state) => {
+            console.log("🎮 Game Update Received:", state);
+            gameState = state;
+            drawGame();
+            updateScore();
+        });
+
+        // Listen for game over event
+        socket.on("game_over", (data) => {
+            alert(`Game Over! Winner: ${data.winner}`);
+        });
+
+        // Handle Player Movement
+        document.addEventListener("keydown", (event) => {
+            const direction = {
+                "ArrowUp": "up",
+                "ArrowDown": "down",
+                "ArrowLeft": "left",
+                "ArrowRight": "right"
+            }[event.key];
+
+            if (direction) {
+                console.log(`➡️ Sending Move: ${direction}`);
+                socket.emit("player_move", { direction });
+            }
+        });
+
+        function drawGame() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw grid background
+            ctx.fillStyle = "#fff";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Draw boundaries
+            ctx.strokeStyle = "black";
+            ctx.lineWidth = 2;
+            ctx.strokeRect(0, 0, canvas.width, canvas.height);
+
+            // Draw player snake with border
+            ctx.fillStyle = "lime";
+            ctx.strokeStyle = "gray";
+            ctx.lineWidth = 1;
+            if (Array.isArray(gameState.player_snake)) {
+                gameState.player_snake.forEach(([x, y], index) => {
+                    ctx.fillRect(x * gridSize, y * gridSize, gridSize, gridSize);
+                    ctx.strokeRect(x * gridSize, y * gridSize, gridSize, gridSize);
+                    
+                    // Draw eyes if it's the head
+                    if (index === gameState.player_snake.length - 1) {
+                        drawEyes(x, y, gameState.player_direction);
+                    }
+                });
+            }
+
+            // Draw AI snake with border
+            ctx.fillStyle = "red";
+            if (Array.isArray(gameState.ai_snake)) {
+                gameState.ai_snake.forEach(([x, y], index) => {
+                    ctx.fillRect(x * gridSize, y * gridSize, gridSize, gridSize);
+                    ctx.strokeRect(x * gridSize, y * gridSize, gridSize, gridSize);
+                    
+                    // Draw eyes if it's the head
+                    if (index === gameState.ai_snake.length - 1) {
+                        drawEyes(x, y, gameState.ai_direction);
+                    }
+                });
+            }
+
+            // Draw food
+            ctx.fillStyle = "yellow";
+            if (Array.isArray(gameState.food) && gameState.food.length === 2) {
+                let [fx, fy] = gameState.food;
+                ctx.fillRect(fx * gridSize, fy * gridSize, gridSize, gridSize);
+            }
+        }
+
+        function drawEyes(x, y, direction) {
+            ctx.fillStyle = "white";
+            const eyeOffset = 4;
+            const eyeSize = 4;
+            let eye1, eye2;
+
+            if (direction === "up") {
+                eye1 = [x * gridSize + eyeOffset, y * gridSize + 2];
+                eye2 = [x * gridSize + gridSize - eyeOffset * 2, y * gridSize + 2];
+            } else if (direction === "down") {
+                eye1 = [x * gridSize + eyeOffset, y * gridSize + gridSize - eyeSize - 2];
+                eye2 = [x * gridSize + gridSize - eyeOffset * 2, y * gridSize + gridSize - eyeSize - 2];
+            } else if (direction === "left") {
+                eye1 = [x * gridSize + 2, y * gridSize + eyeOffset];
+                eye2 = [x * gridSize + 2, y * gridSize + gridSize - eyeOffset * 2];
+            } else {
+                eye1 = [x * gridSize + gridSize - eyeSize - 2, y * gridSize + eyeOffset];
+                eye2 = [x * gridSize + gridSize - eyeSize - 2, y * gridSize + gridSize - eyeOffset * 2];
+            }
+
+            ctx.fillRect(...eye1, eyeSize, eyeSize);
+            ctx.fillRect(...eye2, eyeSize, eyeSize);
+        }
+
+        function resetGame() { socket.emit("reset_game"); }
+        function startGame() { socket.emit("start_game"); }
+        function updateScore() {
+            document.getElementById("playerLength").innerText = gameState.player_snake?.length || 1;
+            document.getElementById("aiLength").innerText = gameState.ai_snake?.length || 1;
+        }
+    </script>
+</body>
+</html>

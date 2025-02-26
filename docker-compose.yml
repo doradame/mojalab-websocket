@@ -1,0 +1,22 @@
+services:
+  backend:
+    build: ./backend
+    ports:
+      - "5050:5050"
+    networks:
+      - snake_network
+
+  nginx:
+    image: nginx:latest
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
+      - ./nginx/index.html:/usr/share/nginx/html/index.html
+    ports:
+      - "8080:8080"
+    depends_on:
+      - backend
+    networks:
+      - snake_network
+
+networks:
+  snake_network:
