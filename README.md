@@ -2,7 +2,7 @@
 
 This is a simple **WebSocket-based Snake game** demonstrating how to use **Flask + Socket.IO** for real-time communication, with **Nginx** serving as a reverse proxy and static file server.
 
-This project is part of a WebSockets tutorial that will be available on [MojaLab](https://mojalab.com). Stay tuned for in-depth explanations on how WebSockets work, why they are useful, and how to integrate Flask-SocketIO into your own projects.
+This project is part of a WebSockets tutorial that will be available on [MojaLab](https://mojalab.com/introduction-to-websockets-and-socket-io/). Stay tuned for in-depth explanations on how WebSockets work, why they are useful, and how to integrate Flask-SocketIO into your own projects.
 
 ## 🛠 Tech Stack
 
